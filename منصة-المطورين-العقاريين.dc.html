@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  ::-webkit-scrollbar { height: 10px; width: 10px; }
+  ::-webkit-scrollbar-thumb { background: #c3ccd6; border-radius: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  .lf-pop .leaflet-popup-content-wrapper { border-radius: 10px; box-shadow: 0 8px 30px rgba(10,37,64,.22); }
+  .leaflet-container { font-family: 'IBM Plex Sans Arabic', sans-serif; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes fadeUp { from { opacity:0; transform: translateY(8px);} to {opacity:1; transform:none;} }
+  @media print {
+    .no-print { display: none !important; }
+    .print-block { display: block !important; }
+  }
+</style>
+</helmet>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#0E3358"/><g transform="translate(30,30)"><path d="M3 40h34M6 40V18l11-9 11 9v22M14 40v-9h6v9" fill="none" stroke="#1FA39A" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/></g></svg></template>
+<div dir="{{ dir }}" style="font-family:'IBM Plex Sans Arabic',system-ui,sans-serif; background:#EEF2F6; min-height:100vh; color:#0A2540;">
+
+  <header class="no-print" style="background:linear-gradient(115deg,#08203B,#0E3358 55%,#13456F); color:#fff; padding:0; position:sticky; top:0; z-index:1200; box-shadow:0 2px 16px rgba(8,32,59,.28);">
+    <div style="max-width:1500px; margin:0 auto; padding:14px 26px; display:flex; align-items:center; gap:20px; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:14px; flex:1; min-width:280px;">
+        <div style="width:44px; height:44px; border-radius:11px; background:linear-gradient(140deg,#1FA39A,#13806f); display:flex; align-items:center; justify-content:center; flex-shrink:0; box-shadow:0 4px 14px rgba(31,163,154,.4);">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 21h18M5 21V8l7-5 7 5v13M9 21v-5h6v5" stroke="#fff" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round"/></svg>
+        </div>
+        <div style="min-width:0;">
+          <div contenteditable="true" onBlur="{{ setTitle }}" style="font-size:20px; font-weight:700; letter-spacing:-.2px; outline:none; line-height:1.2;">{{ siteTitle }}</div>
+          <div contenteditable="true" onBlur="{{ setSubtitle }}" style="font-size:12.5px; color:#9FC2DD; outline:none; margin-top:2px;">{{ siteSubtitle }}</div>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:9px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:6px; background:rgba(31,163,154,.16); border:1px solid rgba(31,163,154,.4); padding:5px 11px; border-radius:9px; font-size:12px; font-weight:600; color:#7FE3D8;">
+          <span style="width:7px; height:7px; border-radius:50%; background:#1FA39A; box-shadow:0 0 8px #1FA39A;"></span>{{ ui.vision }}
+        </div>
+        <div style="display:flex; background:rgba(255,255,255,.1); border-radius:9px; padding:3px;">
+          <button onClick="{{ setLangAr }}" style="{{ langArStyle }}">عربي</button>
+          <button onClick="{{ setLangEn }}" style="{{ langEnStyle }}">EN</button>
+        </div>
+      </div>
+    </div>
+    <nav style="max-width:1500px; margin:0 auto; padding:0 26px; display:flex; gap:4px; align-items:flex-end;">
+      <sc-for list="{{ navTabs }}" as="tab" hint-placeholder-count="3">
+        <button onClick="{{ tab.onClick }}" style="{{ tab.style }}">
+          <span>{{ tab.label }}</span>
+        </button>
+      </sc-for>
+      <div style="flex:1;"></div>
+      <div style="display:flex; gap:7px; padding-bottom:9px; align-items:center; flex-wrap:wrap;">
+        <button onClick="{{ triggerUpload }}" style="display:flex; align-items:center; gap:6px; background:#1FA39A; color:#fff; border:none; padding:7px 13px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 16V4m0 0L7 9m5-5l5 5M5 20h14" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>{{ ui.upload }}
+        </button>
+        <button onClick="{{ dlExcel }}" style="{{ ghostBtn }}">Excel</button>
+        <button onClick="{{ dlCsv }}" style="{{ ghostBtn }}">CSV</button>
+        <button onClick="{{ dlJson }}" style="{{ ghostBtn }}">JSON</button>
+        <button onClick="{{ printPdf }}" style="{{ ghostBtn }}">{{ ui.pdf }}</button>
+        <input type="file" accept=".xlsx,.xls,.csv" ref="{{ setFileInput }}" onChange="{{ onUpload }}" style="display:none;">
+      </div>
+    </nav>
+  </header>
+
+  <main style="max-width:1500px; margin:0 auto; padding:24px 26px 70px;">
+
+    <sc-if value="{{ loading }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; padding:120px 0; gap:18px;">
+        <div style="width:44px; height:44px; border:4px solid #d4dde6; border-top-color:#1FA39A; border-radius:50%; animation:spin .8s linear infinite;"></div>
+        <div style="color:#64748B; font-size:14px;">{{ ui.loading }}</div>
+      </div>
+    </sc-if>
+
+    <!-- ============ OVERVIEW ============ -->
+    <section style="display:{{ overviewDisplay }};">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+        <h2 style="margin:0; font-size:17px; font-weight:700; color:#0A2540;">{{ ui.kpiTitle }}</h2>
+        <div class="no-print" style="display:flex; gap:8px;">
+          <button onClick="{{ recomputeKpis }}" style="{{ softBtn }}">{{ ui.recompute }}</button>
+          <button onClick="{{ addKpi }}" style="{{ softBtnAccent }}">+ {{ ui.addKpi }}</button>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:14px; margin-bottom:26px;">
+        <sc-for list="{{ kpis }}" as="k" hint-placeholder-count="6">
+          <div style="background:#fff; border-radius:14px; padding:18px 18px 16px; border:1px solid #E2E8F0; position:relative; box-shadow:0 1px 3px rgba(10,37,64,.05); animation:fadeUp .4s ease both;">
+            <div style="position:absolute; inset-inline-start:0; top:16px; bottom:16px; width:4px; border-radius:4px; background:{{ k.accent }};"></div>
+            <button onClick="{{ k.onDelete }}" class="no-print" style="position:absolute; inset-inline-end:10px; top:10px; width:22px; height:22px; border:none; background:#F1F5F9; color:#94A3B8; border-radius:6px; cursor:pointer; font-size:14px; line-height:1; display:flex; align-items:center; justify-content:center;">×</button>
+            <div contenteditable="true" onBlur="{{ k.onValue }}" style="font-size:30px; font-weight:700; color:#0A2540; outline:none; padding-inline-start:12px; letter-spacing:-.5px; line-height:1.1;">{{ k.value }}</div>
+            <div contenteditable="true" onBlur="{{ k.onLabel }}" style="font-size:13px; color:#64748B; outline:none; padding-inline-start:12px; margin-top:6px; font-weight:500;">{{ k.label }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1.4fr 1fr; gap:16px; margin-bottom:16px;">
+        <div style="background:#fff; border-radius:14px; padding:18px 20px; border:1px solid #E2E8F0; box-shadow:0 1px 3px rgba(10,37,64,.05);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0; font-size:14.5px; font-weight:700;">{{ ui.chartBudget }}</h3>
+            <button onClick="{{ dlBar }}" class="no-print" style="{{ pngBtn }}">PNG</button>
+          </div>
+          <div style="height:300px; position:relative;"><canvas ref="{{ setBarEl }}"></canvas></div>
+        </div>
+        <div style="background:#fff; border-radius:14px; padding:18px 20px; border:1px solid #E2E8F0; box-shadow:0 1px 3px rgba(10,37,64,.05);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h3 style="margin:0; font-size:14.5px; font-weight:700;">{{ ui.chartStatus }}</h3>
+            <button onClick="{{ dlDonut }}" class="no-print" style="{{ pngBtn }}">PNG</button>
+          </div>
+          <div style="height:300px; position:relative;"><canvas ref="{{ setDonutEl }}"></canvas></div>
+        </div>
+      </div>
+      <div style="background:#fff; border-radius:14px; padding:18px 20px; border:1px solid #E2E8F0; box-shadow:0 1px 3px rgba(10,37,64,.05);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="margin:0; font-size:14.5px; font-weight:700;">{{ ui.chartTimeline }}</h3>
+          <button onClick="{{ dlLine }}" class="no-print" style="{{ pngBtn }}">PNG</button>
+        </div>
+        <div style="height:280px; position:relative;"><canvas ref="{{ setLineEl }}"></canvas></div>
+      </div>
+    </section>
+
+    <!-- ============ PROJECTS ============ -->
+    <section style="display:{{ projectsDisplay }};">
+      <div style="background:#fff; border-radius:14px; border:1px solid #E2E8F0; overflow:hidden; box-shadow:0 1px 3px rgba(10,37,64,.05); margin-bottom:16px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid #EEF2F6; flex-wrap:wrap; gap:10px;">
+          <h3 style="margin:0; font-size:14.5px; font-weight:700;">{{ ui.mapTitle }}</h3>
+          <div style="display:flex; gap:14px; flex-wrap:wrap;">
+            <sc-for list="{{ statusLegend }}" as="s" hint-placeholder-count="4">
+              <div style="display:flex; align-items:center; gap:6px; font-size:12px; color:#475569;">
+                <span style="width:11px; height:11px; border-radius:50%; background:{{ s.color }}; border:1.5px solid #fff; box-shadow:0 0 0 1px #cbd5e1;"></span>{{ s.label }}
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div id="rdp-map" ref="{{ setMapEl }}" style="height:440px; width:100%; background:#dde6ee;"></div>
+      </div>
+
+      <div style="background:#fff; border-radius:14px; border:1px solid #E2E8F0; overflow:hidden; box-shadow:0 1px 3px rgba(10,37,64,.05);">
+        <div class="no-print" style="display:flex; align-items:center; gap:10px; padding:14px 18px; border-bottom:1px solid #EEF2F6; flex-wrap:wrap;">
+          <div style="position:relative; flex:1; min-width:200px;">
+            <input value="{{ search }}" onInput="{{ onSearch }}" placeholder="{{ ui.searchPh }}" style="width:100%; padding:9px 14px; border:1px solid #D6DEE7; border-radius:9px; font-size:13px; font-family:inherit; outline:none; background:#F8FAFC;">
+          </div>
+          <select value="{{ filterCategory }}" onChange="{{ onFilterCategory }}" style="{{ selectStyle }}">
+            <sc-for list="{{ categoryOptions }}" as="o" hint-placeholder-count="5"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+          </select>
+          <select value="{{ filterStatus }}" onChange="{{ onFilterStatus }}" style="{{ selectStyle }}">
+            <sc-for list="{{ statusOptions }}" as="o" hint-placeholder-count="4"><option value="{{ o.value }}">{{ o.label }}</option></sc-for>
+          </select>
+          <button onClick="{{ addProject }}" style="{{ softBtnAccent }}">+ {{ ui.addRow }}</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:12.5px; min-width:1000px;">
+            <thead>
+              <tr style="background:#F1F5F9;">
+                <sc-for list="{{ projectColumns }}" as="c" hint-placeholder-count="10">
+                  <th style="text-align:start; padding:11px 12px; font-weight:600; color:#475569; white-space:nowrap; border-bottom:1px solid #E2E8F0;">{{ c.label }}</th>
+                </sc-for>
+                <th class="no-print" style="width:44px; border-bottom:1px solid #E2E8F0;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ pagedRows }}" as="row" hint-placeholder-count="12">
+                <tr style="border-bottom:1px solid #F1F5F9;">
+                  <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="10">
+                    <td style="padding:4px 8px;">
+                      <input value="{{ cell.value }}" onInput="{{ cell.onInput }}" style="{{ cell.style }}">
+                    </td>
+                  </sc-for>
+                  <td class="no-print" style="text-align:center;">
+                    <button onClick="{{ row.onDelete }}" style="width:24px; height:24px; border:none; background:transparent; color:#CBD5E1; cursor:pointer; border-radius:6px; font-size:15px;">×</button>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+        <div class="no-print" style="display:flex; align-items:center; justify-content:space-between; padding:12px 18px; border-top:1px solid #EEF2F6; flex-wrap:wrap; gap:10px;">
+          <div style="font-size:12.5px; color:#64748B;">{{ pageInfo }}</div>
+          <div style="display:flex; gap:7px; align-items:center;">
+            <button onClick="{{ prevPage }}" style="{{ softBtn }}">{{ ui.prev }}</button>
+            <button onClick="{{ nextPage }}" style="{{ softBtn }}">{{ ui.next }}</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ DEVELOPERS ============ -->
+    <section style="display:{{ devDisplay }};">
+      <div class="no-print" style="display:flex; gap:7px; margin-bottom:16px; flex-wrap:wrap;">
+        <sc-for list="{{ devTabs }}" as="t" hint-placeholder-count="5">
+          <button onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}</button>
+        </sc-for>
+      </div>
+      <div style="background:#fff; border-radius:14px; border:1px solid #E2E8F0; overflow:hidden; box-shadow:0 1px 3px rgba(10,37,64,.05);">
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid #EEF2F6; flex-wrap:wrap; gap:10px;">
+          <div>
+            <h3 style="margin:0; font-size:15px; font-weight:700;">{{ devTitle }}</h3>
+            <div style="font-size:12px; color:#94A3B8; margin-top:2px;">{{ devCount }}</div>
+          </div>
+          <button onClick="{{ addDev }}" class="no-print" style="{{ softBtnAccent }}">+ {{ ui.addRow }}</button>
+        </div>
+        <div style="overflow-x:auto;">
+          <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
+            <thead>
+              <tr style="background:#F1F5F9;">
+                <sc-for list="{{ devColumns }}" as="c" hint-placeholder-count="8">
+                  <th style="text-align:start; padding:11px 12px; font-weight:600; color:#475569; white-space:nowrap; border-bottom:1px solid #E2E8F0;">{{ c.label }}</th>
+                </sc-for>
+                <th class="no-print" style="width:44px; border-bottom:1px solid #E2E8F0;"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <sc-for list="{{ devRows }}" as="row" hint-placeholder-count="10">
+                <tr style="border-bottom:1px solid #F1F5F9;">
+                  <sc-for list="{{ row.cells }}" as="cell" hint-placeholder-count="8">
+                    <td style="padding:4px 8px;">
+                      <input value="{{ cell.value }}" onInput="{{ cell.onInput }}" style="{{ cell.style }}">
+                    </td>
+                  </sc-for>
+                  <td class="no-print" style="text-align:center;">
+                    <button onClick="{{ row.onDelete }}" style="width:24px; height:24px; border:none; background:transparent; color:#CBD5E1; cursor:pointer; border-radius:6px; font-size:15px;">×</button>
+                  </td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <sc-if value="{{ toast }}" hint-placeholder-val="">
+    <div class="no-print" style="position:fixed; bottom:24px; inset-inline-start:50%; transform:translateX(-50%); background:#0E3358; color:#fff; padding:12px 22px; border-radius:11px; font-size:13.5px; font-weight:500; box-shadow:0 8px 30px rgba(8,32,59,.4); z-index:2000; animation:fadeUp .3s ease;">{{ toast }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1500,&quot;height&quot;:1000}}">
+class Component extends DCLogic {
+  state = {
+    loading: true, lang: 'ar', section: 'overview', devTab: 'pif',
+    siteTitle: '', siteSubtitle: '',
+    projects: [], developers: {},
+    kpis: [],
+    search: '', filterCategory: '', filterStatus: '', page: 0,
+    toast: ''
+  };
+
+  PAGE = 20;
+
+  // ---- dictionaries ----
+  STATUS = {
+    'Under Construction': { ar: 'تحت الإنشاء', color: '#E8973A' },
+    'Completed': { ar: 'مكتمل', color: '#2E9E6B' },
+    'Operational': { ar: 'تشغيلي', color: '#2E9E6B' },
+    'Planning': { ar: 'مرحلة التخطيط', color: '#3E7CB1' },
+    'Planned': { ar: 'مخطط', color: '#3E7CB1' },
+    'Design': { ar: 'التصميم', color: '#8B6FB8' },
+    'On Hold': { ar: 'متوقف', color: '#B0492A' }
+  };
+  CAT = {
+    'Mixed Use':'متعدد الاستخدامات','Tourism':'سياحي','Residential':'سكني','Commercial':'تجاري',
+    'Entertainment':'ترفيهي','Infrastructure':'بنية تحتية','Cultural':'ثقافي','Sports':'رياضي',
+    'Healthcare':'صحي','Education':'تعليمي','Transportation':'نقل','Industrial':'صناعي','Hospitality':'ضيافة','Office':'مكاتب'
+  };
+  PALETTE = ['#0E3358','#1FA39A','#C9A227','#3E7CB1','#B0492A','#8B6FB8','#2E9E6B','#E8973A','#5B8C5A','#C2607A'];
+
+  T = {
+    ar: { vision:'رؤية 2030', upload:'رفع ملف', pdf:'طباعة / PDF', loading:'جاري تحميل البيانات…',
+      kpiTitle:'المؤشرات الرئيسية', recompute:'تحديث تلقائي', addKpi:'مؤشر', addRow:'إضافة',
+      chartBudget:'الميزانية حسب الفئة (مليار ر.س)', chartStatus:'توزيع المشاريع حسب الحالة',
+      chartTimeline:'المشاريع حسب سنة الإطلاق', mapTitle:'الخريطة التفاعلية للمشاريع',
+      searchPh:'بحث عن مشروع أو مطور أو حي…', allCats:'كل الفئات', allStatus:'كل الحالات',
+      prev:'السابق', next:'التالي', tabOverview:'نظرة عامة', tabProjects:'مشاريع الرياض', tabDevelopers:'دليل المطورين',
+      of:'من', projects:'مشروع', updated:'تم تحديث البيانات', deleted:'تم الحذف', added:'تمت الإضافة',
+      uploadOk:'تم رفع الملف بنجاح', uploadErr:'تعذّر قراءة الملف' },
+    en: { vision:'Vision 2030', upload:'Upload', pdf:'Print / PDF', loading:'Loading data…',
+      kpiTitle:'Key Indicators', recompute:'Auto-update', addKpi:'KPI', addRow:'Add',
+      chartBudget:'Budget by Category (SAR Billion)', chartStatus:'Projects by Status',
+      chartTimeline:'Projects by Start Year', mapTitle:'Interactive Projects Map',
+      searchPh:'Search project, developer or district…', allCats:'All Categories', allStatus:'All Statuses',
+      prev:'Prev', next:'Next', tabOverview:'Overview', tabProjects:'Riyadh Projects', tabDevelopers:'Developers',
+      of:'of', projects:'projects', updated:'Data updated', deleted:'Deleted', added:'Added',
+      uploadOk:'File uploaded successfully', uploadErr:'Could not read file' }
+  };
+  DEVTABS = [
+    { key:'pif', ar:'مشاريع PIF', en:'PIF Projects' },
+    { key:'listed', ar:'المدرجون تداول', en:'Listed (Tadawul)' },
+    { key:'gov', ar:'الحكومية والهيئات', en:'Government' },
+    { key:'priv', ar:'الخاصة والعائلية', en:'Private & Family' },
+    { key:'reits', ar:'ريتس + دوليون', en:'REITs & Intl' }
+  ];
+  PROJCOLS = [
+    { key:'name', ar:'اسم المشروع', en:'Project Name', w:200 },
+    { key:'category', ar:'الفئة', en:'Category', w:120 },
+    { key:'developer', ar:'المطور', en:'Developer', w:180 },
+    { key:'district', ar:'الحي', en:'District', w:120 },
+    { key:'budget', ar:'الميزانية', en:'Budget', w:80 },
+    { key:'startYear', ar:'سنة البدء', en:'Start', w:70 },
+    { key:'endYear', ar:'الإنجاز', en:'Completion', w:80 },
+    { key:'status', ar:'الحالة', en:'Status', w:130 },
+    { key:'progress', ar:'الإنجاز %', en:'Progress', w:80 },
+    { key:'priority', ar:'الأولوية', en:'Priority', w:90 }
+  ];
+  PMAP = {
+    'Project ID':'id','Project Name':'name','Project Category':'category','Developer':'developer',
+    'District':'district','Latitude':'lat','Longitude':'lng','Budget (SAR Billion)':'budget',
+    'Start Year':'startYear','Expected Completion Year':'endYear','Current Status':'status',
+    'Progress %':'progress','Area (m²)':'area','Number of Buildings':'buildings','Project Type':'type',
+    'Investment Sector':'sector','Jobs Created':'jobs','Residential Units':'units','Commercial Area (m²)':'commArea',
+    'Green Area (m²)':'greenArea','Visitors Per Year':'visitors','Economic Impact':'impact',
+    'Vision 2030 Program':'vision','Risk Level':'risk','Priority':'priority','Description':'desc'
+  };
+
+  async componentDidMount() {
+    await this.waitLibs();
+    const saved = this.loadSaved();
+    if (saved) {
+      this.setState({ ...saved, loading: false }, () => this.afterData());
+    } else {
+      try {
+        const [pr, dv] = await Promise.all([
+          fetch('data/riyadh_projects.json').then(r => r.json()),
+          fetch('data/developers.json').then(r => r.json())
+        ]);
+        const projects = pr.map((row, i) => {
+          const o = { _id: 'p' + i };
+          for (const k in this.PMAP) o[this.PMAP[k]] = row[k];
+          return o;
+        });
+        const developers = {};
+        for (const key in dv) developers[key] = dv[key].map((r, i) => ({ _id: key + i, ...r }));
+        const st = {
+          projects, developers, loading: false,
+          siteTitle: 'منصة المطورين العقاريين السعوديين',
+          siteSubtitle: 'لوحة معلومات تفاعلية لمشاريع التطوير العقاري ورؤية 2030'
+        };
+        st.kpis = this.computeKpis(projects);
+        this.setState(st, () => { this.persist(); this.afterData(); });
+      } catch (e) {
+        this.setState({ loading: false, toast: 'خطأ في تحميل البيانات' });
+      }
+    }
+  }
+
+  waitLibs() {
+    return new Promise(res => {
+      const check = () => (window.L && window.Chart && window.XLSX) ? res() : setTimeout(check, 60);
+      check();
+    });
+  }
+
+  loadSaved() {
+    try { const s = localStorage.getItem('rdp_state_v1'); return s ? JSON.parse(s) : null; }
+    catch (e) { return null; }
+  }
+  persist() {
+    try {
+      const { projects, developers, kpis, siteTitle, siteSubtitle, lang } = this.state;
+      localStorage.setItem('rdp_state_v1', JSON.stringify({ projects, developers, kpis, siteTitle, siteSubtitle, lang }));
+    } catch (e) {}
+  }
+
+  afterData() {
+    this.buildCharts();
+    if (this.state.section === 'projects') this.initMap();
+  }
+
+  componentDidUpdate() {
+    const s = this.state;
+    const prev = this._prev || {};
+    this._prev = { lang: s.lang, projects: s.projects, section: s.section, filterCategory: s.filterCategory, filterStatus: s.filterStatus, search: s.search };
+    if (prev.lang !== s.lang || prev.projects !== s.projects) {
+      this.buildCharts();
+      if (this._map) this.refreshMarkers();
+    }
+    if (prev.section !== s.section && s.section === 'projects') {
+      this.initMap();
+      setTimeout(() => { if (this._map) this._map.invalidateSize(); }, 60);
+    }
+    if (prev.section !== s.section && s.section === 'overview') {
+      setTimeout(() => this.buildCharts(), 50);
+    }
+    if (prev.filterCategory !== s.filterCategory || prev.filterStatus !== s.filterStatus || prev.search !== s.search) {
+      if (this._map) this.refreshMarkers();
+    }
+  }
+
+  // ---- helpers ----
+  num(v) { const n = parseFloat(String(v).replace(/[^0-9.\-]/g, '')); return isNaN(n) ? 0 : n; }
+  fmt(n) { return Math.round(n).toLocaleString('en-US'); }
+  catLabel(c) { return this.state.lang === 'ar' ? (this.CAT[c] || c) : c; }
+  statusLabel(s) { const d = this.STATUS[s]; return this.state.lang === 'ar' ? (d ? d.ar : s) : s; }
+  statusColor(s) { const d = this.STATUS[s]; return d ? d.color : '#94A3B8'; }
+  toast(msg) { this.setState({ toast: msg }); clearTimeout(this._tt); this._tt = setTimeout(() => this.setState({ toast: '' }), 2200); }
+
+  computeKpis(projects) {
+    const sum = k => projects.reduce((a, p) => a + this.num(p[k]), 0);
+    const ar = this.state.lang === 'ar';
+    const avgProg = projects.length ? Math.round(sum('progress') / projects.length * 100) : 0;
+    return [
+      { id: 'k1', ar: 'إجمالي المشاريع', en: 'Total Projects', value: this.fmt(projects.length), accent: '#0E3358' },
+      { id: 'k2', ar: 'إجمالي الميزانية', en: 'Total Budget', value: this.fmt(sum('budget')) + (ar ? ' مليار' : 'B'), accent: '#1FA39A' },
+      { id: 'k3', ar: 'الوظائف المتوقعة', en: 'Jobs Created', value: this.fmt(sum('jobs')), accent: '#C9A227' },
+      { id: 'k4', ar: 'الوحدات السكنية', en: 'Residential Units', value: this.fmt(sum('units')), accent: '#3E7CB1' },
+      { id: 'k5', ar: 'متوسط الإنجاز', en: 'Avg Progress', value: avgProg + '%', accent: '#8B6FB8' },
+      { id: 'k6', ar: 'الزوار سنويًا', en: 'Visitors / Year', value: this.fmt(sum('visitors')), accent: '#B0492A' }
+    ];
+  }
+
+  // ---- charts ----
+  buildCharts() {
+    if (!window.Chart || !this.state.projects.length) return;
+    const ar = this.state.lang === 'ar';
+    Chart.defaults.font.family = "'IBM Plex Sans Arabic', sans-serif";
+    Chart.defaults.font.size = 12;
+    const P = this.state.projects;
+
+    // bar: budget by category
+    const byCat = {};
+    P.forEach(p => { const c = p.category || '—'; byCat[c] = (byCat[c] || 0) + this.num(p.budget); });
+    const cats = Object.entries(byCat).sort((a, b) => b[1] - a[1]).slice(0, 9);
+    this.mk('_bar', this._barEl, {
+      type: 'bar',
+      data: { labels: cats.map(c => this.catLabel(c[0])), datasets: [{ data: cats.map(c => Math.round(c[1])), backgroundColor: '#1FA39A', borderRadius: 5, maxBarThickness: 40 }] },
+      options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { color: '#EEF2F6' }, ticks: { color: '#64748B' } }, y: { grid: { display: false }, ticks: { color: '#334155', font: { size: 12 } } } } }
+    });
+
+    // donut: status
+    const byStatus = {};
+    P.forEach(p => { const s = p.status || '—'; byStatus[s] = (byStatus[s] || 0) + 1; });
+    const sEntries = Object.entries(byStatus).sort((a, b) => b[1] - a[1]);
+    this.mk('_donut', this._donutEl, {
+      type: 'doughnut',
+      data: { labels: sEntries.map(s => this.statusLabel(s[0])), datasets: [{ data: sEntries.map(s => s[1]), backgroundColor: sEntries.map(s => this.statusColor(s[0])), borderWidth: 2, borderColor: '#fff' }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: ar ? 'left' : 'right', labels: { color: '#334155', padding: 12, usePointStyle: true, font: { size: 12 } } } } }
+    });
+
+    // line: by start year
+    const byYear = {};
+    P.forEach(p => { const y = parseInt(p.startYear); if (y) byYear[y] = (byYear[y] || 0) + 1; });
+    const years = Object.keys(byYear).map(Number).sort((a, b) => a - b);
+    this.mk('_line', this._lineEl, {
+      type: 'line',
+      data: { labels: years, datasets: [{ data: years.map(y => byYear[y]), borderColor: '#0E3358', backgroundColor: 'rgba(31,163,154,.14)', fill: true, tension: .35, pointRadius: 3, pointBackgroundColor: '#1FA39A', borderWidth: 2.5 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#64748B' } }, y: { grid: { color: '#EEF2F6' }, ticks: { color: '#64748B', precision: 0 }, beginAtZero: true } } }
+    });
+  }
+  mk(ref, el, cfg) {
+    if (!el) return;
+    if (this[ref]) this[ref].destroy();
+    this[ref] = new Chart(el, cfg);
+  }
+  dlChart(ref, name) {
+    if (!this[ref]) return;
+    const a = document.createElement('a');
+    a.href = this[ref].toBase64Image('image/png', 1);
+    a.download = name + '.png'; a.click();
+  }
+
+  // ---- map ----
+  initMap() {
+    if (this._map || !window.L) return;
+    const el = this._mapEl || document.getElementById('rdp-map');
+    if (!el) { this._mapRetry = (this._mapRetry || 0) + 1; if (this._mapRetry < 30) setTimeout(() => this.initMap(), 100); return; }
+    if (el._leaflet_id) return;
+    this._map = L.map(el, { scrollWheelZoom: false, attributionControl: true }).setView([24.71, 46.68], 10);
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap, © CARTO', subdomains: 'abcd', maxZoom: 19
+    }).addTo(this._map);
+    this._markers = L.layerGroup().addTo(this._map);
+    this.refreshMarkers();
+    setTimeout(() => this._map.invalidateSize(), 100);
+  }
+  refreshMarkers() {
+    if (!this._markers) return;
+    this._markers.clearLayers();
+    const ar = this.state.lang === 'ar';
+    this.getFiltered().forEach(p => {
+      const lat = parseFloat(p.lat), lng = parseFloat(p.lng);
+      if (isNaN(lat) || isNaN(lng)) return;
+      const m = L.circleMarker([lat, lng], { radius: 7, fillColor: this.statusColor(p.status), color: '#fff', weight: 1.6, fillOpacity: .92 });
+      const prog = Math.round(this.num(p.progress) * 100);
+      m.bindPopup(
+        '<div style="font-family:IBM Plex Sans Arabic,sans-serif; direction:' + (ar ? 'rtl' : 'ltr') + '; min-width:180px;">' +
+        '<div style="font-weight:700; font-size:14px; color:#0A2540; margin-bottom:6px;">' + (p.name || '') + '</div>' +
+        '<div style="font-size:12px; color:#475569; line-height:1.7;">' +
+        '<div><b>' + this.catLabel(p.category) + '</b> · ' + (p.district || '') + '</div>' +
+        '<div>' + (ar ? 'الميزانية: ' : 'Budget: ') + this.num(p.budget) + (ar ? ' مليار ر.س' : 'B SAR') + '</div>' +
+        '<div style="display:flex; align-items:center; gap:6px; margin-top:3px;"><span style="width:9px;height:9px;border-radius:50%;background:' + this.statusColor(p.status) + ';display:inline-block;"></span>' + this.statusLabel(p.status) + ' · ' + prog + '%</div>' +
+        '</div></div>', { className: 'lf-pop' }
+      );
+      this._markers.addLayer(m);
+    });
+  }
+
+  // ---- filtering ----
+  getFiltered() {
+    const { projects, filterCategory, filterStatus, search } = this.state;
+    const q = search.trim().toLowerCase();
+    return projects.filter(p => {
+      if (filterCategory && p.category !== filterCategory) return false;
+      if (filterStatus && p.status !== filterStatus) return false;
+      if (q) {
+        const hay = [p.name, p.developer, p.district, p.category].join(' ').toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+  }
+
+  // ---- mutations ----
+  updateProject(id, key, val) {
+    this.setState(s => ({ projects: s.projects.map(p => p._id === id ? { ...p, [key]: val } : p) }), () => this.persist());
+  }
+  deleteProject(id) {
+    this.setState(s => ({ projects: s.projects.filter(p => p._id !== id) }), () => { this.persist(); this.toast(this.T[this.state.lang].deleted); });
+  }
+  addProject() {
+    const np = { _id: 'p' + Date.now(), name: this.state.lang === 'ar' ? 'مشروع جديد' : 'New Project', category: 'Mixed Use', developer: '', district: '', budget: 0, startYear: new Date().getFullYear(), endYear: '', status: 'Planning', progress: 0, priority: 'Medium', lat: 24.71, lng: 46.68 };
+    this.setState(s => ({ projects: [np, ...s.projects], page: 0 }), () => { this.persist(); this.toast(this.T[this.state.lang].added); });
+  }
+  updateDev(tab, id, key, val) {
+    this.setState(s => ({ developers: { ...s.developers, [tab]: s.developers[tab].map(r => r._id === id ? { ...r, [key]: val } : r) } }), () => this.persist());
+  }
+  deleteDev(tab, id) {
+    this.setState(s => ({ developers: { ...s.developers, [tab]: s.developers[tab].filter(r => r._id !== id) } }), () => { this.persist(); this.toast(this.T[this.state.lang].deleted); });
+  }
+  addDev() {
+    const tab = this.state.devTab;
+    const cols = this.devColsFor(tab);
+    const row = { _id: tab + Date.now() };
+    cols.forEach(c => row[c] = '');
+    this.setState(s => ({ developers: { ...s.developers, [tab]: [row, ...s.developers[tab]] } }), () => { this.persist(); this.toast(this.T[this.state.lang].added); });
+  }
+  devColsFor(tab) {
+    const rows = this.state.developers[tab] || [];
+    if (!rows.length) return [];
+    return Object.keys(rows[0]).filter(k => k !== '_id');
+  }
+
+  // ---- kpis ----
+  updateKpi(id, field, val) {
+    this.setState(s => ({ kpis: s.kpis.map(k => k.id === id ? { ...k, [field]: val } : k) }), () => this.persist());
+  }
+  deleteKpi(id) { this.setState(s => ({ kpis: s.kpis.filter(k => k.id !== id) }), () => this.persist()); }
+  addKpi() {
+    const k = { id: 'k' + Date.now(), ar: 'مؤشر جديد', en: 'New KPI', value: '0', accent: this.PALETTE[Math.floor(Math.random() * this.PALETTE.length)] };
+    this.setState(s => ({ kpis: [...s.kpis, k] }), () => this.persist());
+  }
+  recomputeKpis() { this.setState({ kpis: this.computeKpis(this.state.projects) }, () => { this.persist(); this.toast(this.T[this.state.lang].updated); }); }
+
+  // ---- file io ----
+  triggerUpload() { if (this._fileInput) this._fileInput.click(); }
+  onUpload(e) {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const wb = XLSX.read(ev.target.result, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        if (!rows.length) throw new Error('empty');
+        const keys = Object.keys(rows[0]);
+        if (keys.includes('Project Name') || keys.includes('Latitude') || keys.includes('Project ID')) {
+          const projects = rows.map((row, i) => { const o = { _id: 'u' + i + Date.now() }; for (const k in this.PMAP) if (k in row) o[this.PMAP[k]] = row[k]; return o; });
+          this.setState({ projects, page: 0, kpis: this.computeKpis(projects), section: 'projects' }, () => { this.persist(); this.afterData(); this.toast(this.T[this.state.lang].uploadOk); });
+        } else {
+          const tab = this.state.section === 'developers' ? this.state.devTab : 'listed';
+          const data = rows.map((r, i) => ({ _id: tab + i + Date.now(), ...r }));
+          this.setState(s => ({ developers: { ...s.developers, [tab]: data }, section: 'developers' }), () => { this.persist(); this.toast(this.T[this.state.lang].uploadOk); });
+        }
+      } catch (err) { this.toast(this.T[this.state.lang].uploadErr); }
+      e.target.value = '';
+    };
+    reader.readAsArrayBuffer(file);
+  }
+  buildWorkbook() {
+    const wb = XLSX.utils.book_new();
+    const projExport = this.state.projects.map(p => { const o = {}; for (const k in this.PMAP) o[k] = p[this.PMAP[k]]; return o; });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(projExport), 'Riyadh Projects');
+    for (const tab of this.DEVTABS) {
+      const rows = (this.state.developers[tab.key] || []).map(r => { const o = { ...r }; delete o._id; return o; });
+      if (rows.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), tab.en.slice(0, 28));
+    }
+    return wb;
+  }
+  dlExcel() { XLSX.writeFile(this.buildWorkbook(), 'real-estate-developers.xlsx'); }
+  dlCsv() {
+    const projExport = this.state.projects.map(p => { const o = {}; for (const k in this.PMAP) o[k] = p[this.PMAP[k]]; return o; });
+    const csv = XLSX.utils.sheet_to_csv(XLSX.utils.json_to_sheet(projExport));
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'riyadh-projects.csv'; a.click();
+  }
+  dlJson() {
+    const blob = new Blob([JSON.stringify({ projects: this.state.projects, developers: this.state.developers }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'real-estate-data.json'; a.click();
+  }
+  printPdf() { window.print(); }
+
+  // ---- render ----
+  renderVals() {
+    const s = this.state, ar = s.lang === 'ar', t = this.T[s.lang];
+    const ghostBtn = 'background:rgba(255,255,255,.12); color:#cfe0ee; border:1px solid rgba(255,255,255,.18); padding:7px 12px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; font-family:inherit;';
+    const softBtn = 'background:#F1F5F9; color:#475569; border:1px solid #E2E8F0; padding:7px 13px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;';
+    const softBtnAccent = 'background:#0E3358; color:#fff; border:none; padding:7px 14px; border-radius:8px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;';
+    const pngBtn = 'background:#F1F5F9; color:#64748B; border:1px solid #E2E8F0; padding:4px 11px; border-radius:7px; font-size:11px; font-weight:600; cursor:pointer; font-family:inherit;';
+    const selectStyle = 'padding:9px 12px; border:1px solid #D6DEE7; border-radius:9px; font-size:13px; font-family:inherit; background:#F8FAFC; color:#334155; cursor:pointer; outline:none; min-width:150px;';
+    const cellStyle = 'width:100%; min-width:60px; border:1px solid transparent; background:transparent; padding:6px 8px; font-size:12.5px; font-family:inherit; border-radius:6px; color:#1E293B; outline:none;';
+
+    // nav tabs
+    const tabDef = [['overview', t.tabOverview], ['projects', t.tabProjects], ['developers', t.tabDevelopers]];
+    const navTabs = tabDef.map(([key, label]) => ({
+      label, onClick: () => this.setState({ section: key }),
+      style: 'background:transparent; border:none; color:' + (s.section === key ? '#fff' : '#86A8C6') + '; padding:13px 18px; font-size:13.5px; font-weight:600; cursor:pointer; font-family:inherit; border-bottom:3px solid ' + (s.section === key ? '#1FA39A' : 'transparent') + '; margin-bottom:-1px;'
+    }));
+
+    // kpis
+    const kpis = s.kpis.map(k => ({
+      value: k.value, label: ar ? k.ar : k.en, accent: k.accent,
+      onValue: (e) => this.updateKpi(k.id, 'value', e.target.textContent),
+      onLabel: (e) => this.updateKpi(k.id, ar ? 'ar' : 'en', e.target.textContent),
+      onDelete: () => this.deleteKpi(k.id)
+    }));
+
+    // projects filters
+    const uniqCats = [...new Set(s.projects.map(p => p.category).filter(Boolean))];
+    const uniqStatus = [...new Set(s.projects.map(p => p.status).filter(Boolean))];
+    const categoryOptions = [{ value: '', label: t.allCats }, ...uniqCats.map(c => ({ value: c, label: this.catLabel(c) }))];
+    const statusOptions = [{ value: '', label: t.allStatus }, ...uniqStatus.map(c => ({ value: c, label: this.statusLabel(c) }))];
+    const statusLegend = uniqStatus.map(st => ({ color: this.statusColor(st), label: this.statusLabel(st) }));
+
+    const projectColumns = this.PROJCOLS.map(c => ({ label: ar ? c.ar : c.en }));
+    const filtered = this.getFiltered();
+    const totalPages = Math.max(1, Math.ceil(filtered.length / this.PAGE));
+    const page = Math.min(s.page, totalPages - 1);
+    const pageRows = filtered.slice(page * this.PAGE, page * this.PAGE + this.PAGE);
+    const pagedRows = pageRows.map(p => ({
+      onDelete: () => this.deleteProject(p._id),
+      cells: this.PROJCOLS.map(col => ({
+        value: p[col.key] == null ? '' : p[col.key],
+        style: cellStyle + 'max-width:' + (col.w + 40) + 'px;',
+        onInput: (e) => this.updateProject(p._id, col.key, e.target.value)
+      }))
+    }));
+    const pageInfo = ar
+      ? (filtered.length + ' ' + t.projects + '  ·  صفحة ' + (page + 1) + ' ' + t.of + ' ' + totalPages)
+      : (filtered.length + ' ' + t.projects + '  ·  page ' + (page + 1) + ' ' + t.of + ' ' + totalPages);
+
+    // developers
+    const devTabs = this.DEVTABS.map(d => ({
+      label: ar ? d.ar : d.en, onClick: () => this.setState({ devTab: d.key }),
+      style: (s.devTab === d.key ? 'background:#0E3358; color:#fff;' : 'background:#fff; color:#475569; border:1px solid #E2E8F0;') + ' padding:9px 16px; border-radius:9px; font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; border:' + (s.devTab === d.key ? 'none' : '1px solid #E2E8F0') + ';'
+    }));
+    const devCols = this.devColsFor(s.devTab);
+    const devColumns = devCols.map(c => ({ label: c }));
+    const devRows = (s.developers[s.devTab] || []).map(r => ({
+      onDelete: () => this.deleteDev(s.devTab, r._id),
+      cells: devCols.map(c => ({
+        value: r[c] == null ? '' : r[c],
+        style: cellStyle + 'min-width:90px;',
+        onInput: (e) => this.updateDev(s.devTab, r._id, c, e.target.value)
+      }))
+    }));
+    const curTab = this.DEVTABS.find(d => d.key === s.devTab) || {};
+    const devTitle = ar ? curTab.ar : curTab.en;
+    const devCount = (s.developers[s.devTab] || []).length + (ar ? ' جهة' : ' entries');
+
+    return {
+      dir: ar ? 'rtl' : 'ltr', lang: s.lang, loading: s.loading,
+      ui: t, siteTitle: s.siteTitle, siteSubtitle: s.siteSubtitle,
+      setTitle: (e) => this.setState({ siteTitle: e.target.textContent }, () => this.persist()),
+      setSubtitle: (e) => this.setState({ siteSubtitle: e.target.textContent }, () => this.persist()),
+      setLangAr: () => this.setState({ lang: 'ar' }, () => this.persist()),
+      setLangEn: () => this.setState({ lang: 'en' }, () => this.persist()),
+      langArStyle: 'background:' + (ar ? '#1FA39A' : 'transparent') + '; color:#fff; border:none; padding:5px 12px; border-radius:7px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;',
+      langEnStyle: 'background:' + (!ar ? '#1FA39A' : 'transparent') + '; color:#fff; border:none; padding:5px 12px; border-radius:7px; font-size:12.5px; font-weight:600; cursor:pointer; font-family:inherit;',
+      navTabs,
+      overviewDisplay: s.section === 'overview' ? 'block' : 'none',
+      projectsDisplay: s.section === 'projects' ? 'block' : 'none',
+      devDisplay: s.section === 'developers' ? 'block' : 'none',
+      ghostBtn, softBtn, softBtnAccent, pngBtn, selectStyle,
+      kpis, addKpi: () => this.addKpi(), recomputeKpis: () => this.recomputeKpis(),
+      setBarEl: (el) => { this._barEl = el; }, setDonutEl: (el) => { this._donutEl = el; }, setLineEl: (el) => { this._lineEl = el; },
+      dlBar: () => this.dlChart('_bar', 'budget-by-category'), dlDonut: () => this.dlChart('_donut', 'projects-by-status'), dlLine: () => this.dlChart('_line', 'projects-timeline'),
+      setMapEl: (el) => { this._mapEl = el; },
+      search: s.search, onSearch: (e) => this.setState({ search: e.target.value, page: 0 }),
+      filterCategory: s.filterCategory, onFilterCategory: (e) => this.setState({ filterCategory: e.target.value, page: 0 }),
+      filterStatus: s.filterStatus, onFilterStatus: (e) => this.setState({ filterStatus: e.target.value, page: 0 }),
+      categoryOptions, statusOptions, statusLegend,
+      projectColumns, pagedRows, addProject: () => this.addProject(),
+      pageInfo, prevPage: () => this.setState(st => ({ page: Math.max(0, st.page - 1) })), nextPage: () => this.setState(st => ({ page: Math.min(totalPages - 1, st.page + 1) })),
+      devTabs, devColumns, devRows, addDev: () => this.addDev(), devTitle, devCount,
+      triggerUpload: () => this.triggerUpload(), setFileInput: (el) => { this._fileInput = el; }, onUpload: (e) => this.onUpload(e),
+      dlExcel: () => this.dlExcel(), dlCsv: () => this.dlCsv(), dlJson: () => this.dlJson(), printPdf: () => this.printPdf(),
+      toast: s.toast
+    };
+  }
+}
+</script>
+</body>
+</html>
